@@ -12,13 +12,16 @@ import net.runelite.cache.script.RuneLiteInstructions;
 import net.runelite.cache.script.assembler.Assembler;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.logging.Logger;
+import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.InputDirectory;
+import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.OutputDirectory;
 import org.gradle.api.tasks.TaskAction;
 
 public class ScriptAssemblerTask extends DefaultTask {
 	private String scriptDirectory_;
 	private String outputDirectory_;
+	private String packagedName_;
 
 	private final Logger log = getLogger();
 
@@ -40,6 +43,15 @@ public class ScriptAssemblerTask extends DefaultTask {
 		this.outputDirectory_ = outputDirectory;
 	}
 
+	@Input
+	public String getPackagedName() {
+		return packagedName_;
+	}
+
+	public void setPackagedName(String packagedName) {
+		this.packagedName_ = packagedName;
+	}
+
 	@TaskAction
 	public void assemble() {
 		File scriptDirectory = new File(scriptDirectory_);
@@ -49,18 +61,19 @@ public class ScriptAssemblerTask extends DefaultTask {
 		instructions.init();
 
 		Assembler assembler = new Assembler(instructions);
-		ScriptSaver saver = new ScriptSaver();
+		ScriptSaver saver = new ScriptSaver(true);
 
 		int count = 0;
-		File scriptOut = new File(outputDirectory, "scripts");
-		scriptOut.mkdirs();
 
 		// Clear the target directory to remove stale entries
 		try {
-			MoreFiles.deleteDirectoryContents(scriptOut.toPath(), RecursiveDeleteOption.ALLOW_INSECURE);
+			MoreFiles.deleteDirectoryContents(outputDirectory.toPath(), RecursiveDeleteOption.ALLOW_INSECURE);
 		} catch (IOException e) {
-			throw new RuntimeException("Could not clear scriptOut: " + scriptOut, e);
+			throw new RuntimeException("Could not clear outputDirectory: " + outputDirectory, e);
 		}
+
+		File scriptOut = new File(outputDirectory, packagedName_);
+		scriptOut.mkdirs();
 
 		for (File scriptFile : scriptDirectory.listFiles((dir, name) -> name.endsWith(".rs2asm"))) {
 			log.lifecycle("[debug] Assembling " + scriptFile);
@@ -69,8 +82,13 @@ public class ScriptAssemblerTask extends DefaultTask {
 				ScriptDefinition script = assembler.assemble(fin);
 				byte[] packedScript = saver.save(script);
 
-				File targetFile = new File(scriptOut, scriptFile.getName().replace(".rs2asm", ""));
+				File targetFile = new File(scriptOut, Integer.toString(script.getId()));
 				Files.write(packedScript, targetFile);
+
+				File hashFile = new File(scriptFile.getParentFile().getPath(), Files.getNameWithoutExtension(scriptFile.getName()) + ".hash");
+				if (hashFile.exists()) {
+					Files.copy(hashFile, new File(scriptOut, script.getId() + ".hash"));
+				}
 
 				count++;
 			} catch (IOException ex) {

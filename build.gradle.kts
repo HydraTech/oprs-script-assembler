@@ -6,10 +6,13 @@ plugins {
 apply<MavenPublishPlugin>()
 
 group = "com.openosrs"
-version = "1.0.2-SNAPSHOT"
+version = "1.0.6"
 
 repositories {
     mavenCentral()
+    maven {
+        url = uri("https://repo.runelite.net")
+    }
     mavenLocal()
 }
 
@@ -26,12 +29,12 @@ configure<PublishingExtension> {
     }
 }
 
-val oprsVersion = "latest.release"
+val rlVersion = "latest.release"
 
 dependencies {
     compileOnly(gradleApi())
-    implementation("com.openosrs:cache:$oprsVersion")
-    implementation("com.openosrs:runelite-api:$oprsVersion")
+    implementation("net.runelite:cache:$rlVersion")
+    implementation("net.runelite:runelite-api:$rlVersion")
     implementation(group = "com.google.guava", name = "guava", version = "30.1.1-jre")
     implementation(group = "org.slf4j", name = "slf4j-nop", version = "1.7.32")
 }
