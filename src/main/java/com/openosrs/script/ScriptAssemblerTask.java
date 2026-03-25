@@ -12,13 +12,13 @@ import net.runelite.cache.script.RuneLiteInstructions;
 import net.runelite.cache.script.assembler.Assembler;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.logging.Logger;
+import org.gradle.api.provider.Property;
 import org.gradle.api.tasks.Input;
 import org.gradle.api.tasks.InputDirectory;
-import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.OutputDirectory;
 import org.gradle.api.tasks.TaskAction;
 
-public class ScriptAssemblerTask extends DefaultTask {
+public abstract class ScriptAssemblerTask extends DefaultTask {
 	private String scriptDirectory_;
 	private String outputDirectory_;
 	private String packagedName_;
@@ -52,6 +52,9 @@ public class ScriptAssemblerTask extends DefaultTask {
 		this.packagedName_ = packagedName;
 	}
 
+	@Input
+	public abstract Property<Boolean> getLongSupport();
+
 	@TaskAction
 	public void assemble() {
 		File scriptDirectory = new File(scriptDirectory_);
@@ -61,7 +64,7 @@ public class ScriptAssemblerTask extends DefaultTask {
 		instructions.init();
 
 		Assembler assembler = new Assembler(instructions);
-		ScriptSaver saver = new ScriptSaver(true);
+		ScriptSaver saver = new ScriptSaver(getLongSupport().getOrElse(true));
 
 		int count = 0;
 
